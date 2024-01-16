@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,7 @@ type DockerManager interface {
 	GetContainerImageDigest(containerId string) (string, error)
 	GetContainersRunningImage(imageDigest string) ([]DockerContainerDetails, error)
 	PullImage(name string, repoDigest string) error
+	PullPrivateImage(name string, repoDigest string, githubUsername string, pat string) error
 	RemoveImageByImageId(imageId string) error
 	RemoveImageByRepoDigest(repoDigest string) error
 }
@@ -288,6 +290,31 @@ func (dm *LocalDockerManager) PullImage(name string, repoDigest string) error {
 		dm.logger.Error(err)
 		return err
 	}
+	dm.logger.Debugf("Output: %s", string(outputBytes))
+	return nil
+}
+
+func (dm *LocalDockerManager) PullPrivateImage(name string, repoDigest string, githubUsername string, pat string) error {
+	dm.logger.Debugf("Authenticating with GitHub Container Registry")
+
+	// Prepare the login command
+	loginCmd := exec.Command("docker", "login", "ghcr.io", "-u", githubUsername, "--password-stdin")
+	loginCmd.Stdin = bytes.NewBufferString(pat)
+
+	if err := loginCmd.Run(); err != nil {
+		dm.logger.Errorf("Failed to authenticate: %v", err)
+		return err
+	}
+
+	dm.logger.Debugf("Pulling image %s@%s", name, repoDigest)
+	pullCmd := exec.Command("docker", "pull", fmt.Sprintf("%s@%s", name, repoDigest))
+
+	outputBytes, err := pullCmd.CombinedOutput()
+	if err != nil {
+		dm.logger.Errorf("Failed to pull image: %v. Output: %s", err, string(outputBytes))
+		return err
+	}
+
 	dm.logger.Debugf("Output: %s", string(outputBytes))
 	return nil
 }

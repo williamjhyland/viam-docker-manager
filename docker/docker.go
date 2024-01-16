@@ -15,7 +15,7 @@ import (
 	viamutils "go.viam.com/utils"
 )
 
-var Model = resource.NewModel("viam-soleng", "manage", "docker")
+var Model = resource.NewModel("bill", "manage", "docker")
 
 type DockerConfig struct {
 	resource.Named
@@ -150,15 +150,29 @@ func (dc *DockerConfig) reconfigure(newConf *Config) error {
 					return
 				default:
 					if !dc.image.Exists() {
-						dc.logger.Debug("image does not exist. Pulling...")
-						err := dc.manager.PullImage(newConf.ImageName, newConf.RepoDigest)
-						if err != nil {
-							dc.logger.Error(err)
-							continue
-						}
-						if dc.shouldRun() {
-							dc.logger.Debug("image pulled. Starting...")
-							dc.startInternal()
+						if newConf.IsPrivate {
+							dc.logger.Debug("image does not exist. Pulling...")
+
+							err := dc.manager.PullPrivateImage(newConf.ImageName, newConf.RepoDigest, newConf.Username, newConf.Token)
+							if err != nil {
+								dc.logger.Error(err)
+								continue
+							}
+							if dc.shouldRun() {
+								dc.logger.Debug("image pulled. Starting...")
+								dc.startInternal()
+							}
+						} else {
+							dc.logger.Debug("image does not exist. Pulling...")
+							err := dc.manager.PullImage(newConf.ImageName, newConf.RepoDigest)
+							if err != nil {
+								dc.logger.Error(err)
+								continue
+							}
+							if dc.shouldRun() {
+								dc.logger.Debug("image pulled. Starting...")
+								dc.startInternal()
+							}
 						}
 					} else {
 						dc.logger.Debug("image exists. Checking if running...")

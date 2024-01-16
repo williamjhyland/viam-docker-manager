@@ -8,9 +8,15 @@ import (
 )
 
 type Config struct {
+	IsPrivate  bool               `json:"is_private"`
 	Attributes utils.AttributeMap `json:"attributes,omitempty"`
 	ImageName  string             `json:"image_name"`
 	RepoDigest string             `json:"repo_digest"`
+
+	// This is for authenticating with GitHub Container Registry
+	Username string `json:"github_username"`
+	Token    string `json:"github_token"`
+	Tag      string `json:"github_tag"`
 
 	// This is for docker compose based configs
 	ComposeFile []string `json:"compose_file"`
