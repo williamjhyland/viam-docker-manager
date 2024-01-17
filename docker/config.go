@@ -16,7 +16,6 @@ type Config struct {
 	// This is for authenticating with GitHub Container Registry
 	Username string `json:"github_username"`
 	Token    string `json:"github_token"`
-	Tag      string `json:"github_tag"`
 
 	// This is for docker compose based configs
 	ComposeFile []string `json:"compose_file"`
@@ -31,10 +30,6 @@ type Config struct {
 func (conf *Config) Validate(path string) ([]string, error) {
 	if conf.ImageName == "" {
 		return nil, errors.New("image_name is required")
-	}
-
-	if conf.RepoDigest == "" {
-		return nil, errors.New("repo_digest is required")
 	}
 
 	// We need to make sure that the repo digest is contained in the compose file, otherwise running the compose file will pull the latest image

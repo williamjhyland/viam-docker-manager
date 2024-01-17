@@ -23,7 +23,7 @@ type DockerManager interface {
 	GetContainerImageDigest(containerId string) (string, error)
 	GetContainersRunningImage(imageDigest string) ([]DockerContainerDetails, error)
 	PullImage(name string, repoDigest string) error
-	PullPrivateImage(name string, repoDigest string, githubUsername string, pat string) error
+	PullPrivateImage(name string, githubUsername string, pat string) error
 	RemoveImageByImageId(imageId string) error
 	RemoveImageByRepoDigest(repoDigest string) error
 }
@@ -294,20 +294,55 @@ func (dm *LocalDockerManager) PullImage(name string, repoDigest string) error {
 	return nil
 }
 
-func (dm *LocalDockerManager) PullPrivateImage(name string, repoDigest string, githubUsername string, pat string) error {
+func (dm *LocalDockerManager) PullPrivateImage(name string, githubUsername string, pat string) error {
 	dm.logger.Debugf("Authenticating with GitHub Container Registry")
 
-	// Prepare the login command
+	// Using exec.Command for login
 	loginCmd := exec.Command("docker", "login", "ghcr.io", "-u", githubUsername, "--password-stdin")
-	loginCmd.Stdin = bytes.NewBufferString(pat)
-
-	if err := loginCmd.Run(); err != nil {
-		dm.logger.Errorf("Failed to authenticate: %v", err)
+	stdin, err := loginCmd.StdinPipe()
+	if err != nil {
+		dm.logger.Errorf("Failed to create stdin pipe for login command: %v", err)
 		return err
 	}
 
-	dm.logger.Debugf("Pulling image %s@%s", name, repoDigest)
-	pullCmd := exec.Command("docker", "pull", fmt.Sprintf("%s@%s", name, repoDigest))
+	// Capture both standard output and standard error
+	var stdout, stderr bytes.Buffer
+	loginCmd.Stdout = &stdout
+	loginCmd.Stderr = &stderr
+
+	// Start the login command
+	if err := loginCmd.Start(); err != nil {
+		dm.logger.Errorf("Failed to start login command: %v", err)
+		return err
+	}
+
+	// Write the PAT to the stdin of the login command
+	_, err = stdin.Write([]byte(pat + "\n"))
+	if err != nil {
+		dm.logger.Errorf("Failed to write PAT to login command: %v", err)
+		return err
+	}
+	stdin.Close()
+
+	// Wait for the login command to complete
+	err = loginCmd.Wait()
+	if err != nil {
+		dm.logger.Errorf("Login command failed: %v", err)
+		return err
+	}
+
+	// Optionally check the stdout or stderr for specific success/error messages
+	loginOutput := stdout.String()
+	if strings.Contains(loginOutput, "Login Succeeded") {
+		dm.logger.Warnf("Successfully authenticated with GitHub Container Registry")
+	} else {
+		dm.logger.Errorf("Authentication may have failed, output: %s", loginOutput)
+		// You may choose to return an error here based on your requirements
+	}
+
+	// Pull command
+	dm.logger.Debugf("Pulling image %s", name)
+	pullCmd := exec.Command("docker", "pull", name)
 
 	outputBytes, err := pullCmd.CombinedOutput()
 	if err != nil {
@@ -318,3 +353,4 @@ func (dm *LocalDockerManager) PullPrivateImage(name string, repoDigest string, g
 	dm.logger.Debugf("Output: %s", string(outputBytes))
 	return nil
 }
+

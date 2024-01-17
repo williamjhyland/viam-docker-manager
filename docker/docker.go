@@ -153,7 +153,7 @@ func (dc *DockerConfig) reconfigure(newConf *Config) error {
 						if newConf.IsPrivate {
 							dc.logger.Debug("image does not exist. Pulling...")
 
-							err := dc.manager.PullPrivateImage(newConf.ImageName, newConf.RepoDigest, newConf.Username, newConf.Token)
+							err := dc.manager.PullPrivateImage(newConf.ImageName, newConf.Username, newConf.Token)
 							if err != nil {
 								dc.logger.Error(err)
 								continue

@@ -93,6 +93,8 @@ func (di *LocalDockerImage) Exists() bool {
 }
 
 func (di *LocalDockerImage) IsRunning() (bool, error) {
+	//TODO WHY WONT THIS WORK ANYMORE
+
 	di.logger.Debugf("Checking if image %s %s is running", di.Name, di.RepoDigest)
 	proc := exec.Command("docker", "ps", "--no-trunc")
 	outputBytes, err := proc.Output()
@@ -113,6 +115,7 @@ func (di *LocalDockerImage) IsRunning() (bool, error) {
 	}
 	lines := strings.Split(outputString, "\n")
 	for _, line := range lines {
+		di.logger.Warnf(line, "---", containerId, "---", strings.Contains(line, containerId), "---", strings.Contains(line, "Up"))
 		if strings.Contains(line, containerId) && strings.Contains(line, "Up") {
 			return true, nil
 		}
@@ -129,7 +132,11 @@ func (di *LocalDockerImage) Start() error {
 	if di.ComposeFile == "" {
 		args = append(args, "run", "--rm", "-d")
 		args = append(args, di.Options...)
-		args = append(args, fmt.Sprintf("%s@%s", di.Name, di.RepoDigest))
+		if strings.HasPrefix(di.Name, "ghcr.io/") {
+			args = append(args, di.Name)
+		} else {
+			args = append(args, fmt.Sprintf("%s@%s", di.Name, di.RepoDigest))
+		}
 		args = append(args, di.EntryPointArgs...)
 	} else {
 		args = append(args, "compose", "-f", di.ComposeFile, "up", "-d")
@@ -227,7 +234,21 @@ func (di *LocalDockerImage) GetContainerId() string {
 }
 
 func (di *LocalDockerImage) GetImageId() string {
-	proc := exec.Command("docker", "image", "inspect", "--format", "'{{json .Id}}'", fmt.Sprintf("%s@%s", di.Name, di.RepoDigest))
+    // Prepare the initial part of the command
+    cmdArgs := []string{"image", "inspect", "--format", "{{json .Id}}"}
+
+    if strings.HasPrefix(di.Name, "ghcr.io/") {
+        // If the name starts with 'ghcr.io/', use the name as it is (including the tag)
+        cmdArgs = append(cmdArgs, di.Name)
+    } else {
+        // If the name doesn't start with 'ghcr.io/', format it with the repo digest
+        cmdArgs = append(cmdArgs, fmt.Sprintf("%s@%s", di.Name, di.RepoDigest))
+    }
+
+    // Now construct the exec.Command with the appropriate arguments
+    // Use the ... operator to spread the cmdArgs slice into multiple arguments
+    proc := exec.Command("docker", cmdArgs...)
+
 	outputBytes, err := proc.Output()
 	if err != nil {
 		exitError := err.(*exec.ExitError)
