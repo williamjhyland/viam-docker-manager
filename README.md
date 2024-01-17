@@ -66,6 +66,24 @@ Attributes:
 }
 ```
 
+### Authentication Example with Options
+
+Command: `docker run --rm ghcr.io/williamjhyland/private_docker_repo/ubuntu:myubuntuimage echo hi`
+Attributes:
+{
+  "entry_point_args": [
+    "sleep",
+    "30"
+  ],
+  "github_token": "INSERT TOKEN HERE",
+  "github_username": "INSERT USERNAME HERE",
+  "image_name": "ghcr.io/williamjhyland/private_docker_repo/ubuntu:myubuntuimage",
+  "is_private": true,
+  "options": [
+    "--rm"
+  ]
+}
+
 ### `docker compose`
 
 |Attribute|Required|Type|Description|
