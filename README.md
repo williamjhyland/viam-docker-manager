@@ -70,6 +70,7 @@ Attributes:
 
 Command: `docker run --rm ghcr.io/williamjhyland/private_docker_repo/ubuntu:myubuntuimage echo hi`
 Attributes:
+'''
 {
   "entry_point_args": [
     "sleep",
@@ -83,7 +84,7 @@ Attributes:
     "--rm"
   ]
 }
-
+'''
 ### `docker compose`
 
 |Attribute|Required|Type|Description|
