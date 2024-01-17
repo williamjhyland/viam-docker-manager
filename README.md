@@ -68,9 +68,9 @@ Attributes:
 
 ### Authentication Example with Options
 
-Command: `docker run --rm ghcr.io/williamjhyland/private_docker_repo/ubuntu:myubuntuimage echo hi`
+Command: `docker run --rm ghcr.io/williamjhyland/private_docker_repo/ubuntu:myubuntuimage sleep 30`
 Attributes:
-'''
+```
 {
   "entry_point_args": [
     "sleep",
@@ -84,7 +84,7 @@ Attributes:
     "--rm"
   ]
 }
-'''
+```
 ### `docker compose`
 
 |Attribute|Required|Type|Description|
